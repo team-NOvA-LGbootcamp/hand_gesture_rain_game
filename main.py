@@ -6,7 +6,7 @@ from rain_game import RainGame
 import pygame
 
 def main():
-    model_path = 'sample.tflite'
+    model_path = 'SignMNIST_Augmentation.tflite'
     hgr = HandGestureRecognition(model_path)
     
     # hgr.run()을 별도의 스레드에서 실행
