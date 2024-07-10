@@ -15,8 +15,7 @@ class HandGestureRecognition:
         self.input_dtype = self.input_details[0]['dtype']
         self.height = self.input_details[0]['shape'][1]
         self.width = self.input_details[0]['shape'][2]
-        self.ansToText = {0: 'scissors', 1: 'rock', 2: 'paper'}
-        self.colorList = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        self.ansToText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         self.IMG_SIZE = 64
         self.offset = 30
         self.cap = cv2.VideoCapture(camera_index)
@@ -63,8 +62,8 @@ class HandGestureRecognition:
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
         self.ans = np.argmax(output_data)
         text = self.ansToText[self.ans]
-        cv2.rectangle(frame, (x1, y1), (x2, y2), self.colorList[self.ans], 2)
-        cv2.putText(frame, text, (x1, y1 - 7), cv2.FONT_HERSHEY_PLAIN, 2, self.colorList[self.ans], 2)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
+        cv2.putText(frame, text, (x1, y1 - 7), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
 
     def run(self):
         while self.cap.isOpened():
