@@ -1,26 +1,26 @@
 import threading
 import time
 import sys
-from hand_gesture_recognition import HandGestureRecognition
+# from hand_gesture_recognition import HandGestureRecognition
 from rain_game import RainGame
 import pygame
 
 def main():
-    model_path = 'SignMNIST_Augmentation.tflite'
-    hgr = HandGestureRecognition(model_path)
+    # model_path = 'SignMNIST_Augmentation.tflite'
+    # hgr = HandGestureRecognition(model_path)
     
-    # hgr.run()을 별도의 스레드에서 실행
-    run_thread = threading.Thread(target=hgr.run)
-    run_thread.start()
+    # # hgr.run()을 별도의 스레드에서 실행
+    # run_thread = threading.Thread(target=hgr.run)
+    # run_thread.start()
 
     game = RainGame()
-    buttons = game.draw_start_screen()
+    start_button_rect = game.draw_start_screen()
     pygame.display.flip()
     try:
         while True:
-            ans = hgr.get_ans()
-            if ans is not None:
-                print(f"Current gesture: {ans}")
+            # ans = hgr.get_ans()
+            # if ans is not None:
+            #     print(f"Current gesture: {ans}")
             # time.sleep(1)
 
             for event in pygame.event.get():
@@ -29,10 +29,8 @@ def main():
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = event.pos
-                    for level, button_rect in buttons:
-                        if button_rect.collidepoint(mouse_pos):
-                            settings = game.DIFFICULTIES[level]
-                            game.game_loop(settings['interval'], settings['speed'])
+                    if start_button_rect.collidepoint(mouse_pos):
+                        game.game_loop()  # 기본 난이도로 시작
         
             pygame.display.flip()
 
