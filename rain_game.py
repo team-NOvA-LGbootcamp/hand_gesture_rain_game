@@ -2,9 +2,11 @@ import pygame
 import random
 import sys
 import cv2
-from pydub import AudioSegment
+import numpy as np
+# from pydub import AudioSegment
 from pygame.locals import *
 from pygame import mixer
+
 
 class RainGame:
     def __init__(self):
@@ -12,37 +14,41 @@ class RainGame:
 
         # 화면 크기 설정
         self.SCREEN_WIDTH = 800
-        self.SCREEN_HEIGHT = 400
+        self.SCREEN_HEIGHT = 600
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
-        pygame.display.set_caption("Alphabet Rain Game")
+        pygame.display.set_caption("Arrow Rhythm Game")
         self.camera_frame = []
+        
         # 색상 정의
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (200, 200, 200)
+        self.PRETTY_BLUE = (100,149,237)
 
         # 폰트 설정
-        self.title_font = pygame.font.Font(None, 100)
-        self.button_font = pygame.font.Font(None, 74)
-        self.game_font = pygame.font.Font(None, 74)
-        self.input_font = pygame.font.Font(None, 48)
+        self.title_font = pygame.font.Font(None, 90)
+        self.button_font = pygame.font.Font(None, 70)
+        self.game_font = pygame.font.Font(None, 60)
 
         # 알파벳 영역 설정 (화면 세로방향 약 3/4 지점)
         self.remove_zone_top = self.SCREEN_HEIGHT * 3 // 4 - 25
         self.remove_zone_bottom = self.SCREEN_HEIGHT * 3 // 4 + 25
 
         # 알파벳 고정 위치 설정
+        margin_ = 8
         self.alphabet_positions = {
-            'A': self.SCREEN_WIDTH // 6 * 1 - 20,
-            'B': self.SCREEN_WIDTH // 6 * 2 - 20,
-            'C': self.SCREEN_WIDTH // 6 * 3 - 20,
-            'D': self.SCREEN_WIDTH // 6 * 4 - 20,
-            'E': self.SCREEN_WIDTH // 6 * 5 - 20,
+            'A': self.SCREEN_WIDTH // margin_ * 1 - 20,
+            'B': self.SCREEN_WIDTH // margin_ * 2 - 20,
+            'C': self.SCREEN_WIDTH // margin_ * 3 - 20,
+            'D': self.SCREEN_WIDTH // margin_ * 4 - 20,
+            'E': self.SCREEN_WIDTH // margin_ * 5 - 20,
         }
+
         # 알파벳 등장 간격 리스트 및 인덱스
-        self.intervals = [3500+1700]+[1700]*10
+        # self.intervals = [3500+1700]+[1700]*10 # ms
+        self.intervals = [100]+[1700]*1000 # ms
         self.interval_index = 0
-        self.speed = 2
+        self.speed = 3
         self.score = 0
 
         # 게임 상태 관련 변수
@@ -51,6 +57,11 @@ class RainGame:
         # 노래 설정
         mixer.init()
         self.background_music = mixer.Sound('nabi.wav')
+
+        # OpenCV 카메라 설정
+        self.camera = cv2.VideoCapture(0)
+        self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
+        self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
 
 
     class Alphabet:
@@ -69,7 +80,7 @@ class RainGame:
 
     def draw_start_screen(self):
         self.screen.fill(self.WHITE)
-        title_surface = self.title_font.render("Rhythm Alphabet Game", True, self.BLACK)
+        title_surface = self.title_font.render("Arrow Rhythm Game", True, self.BLACK)
         self.screen.blit(title_surface, (self.SCREEN_WIDTH // 2 - title_surface.get_width() // 2, 100))
         
         # Start 버튼
@@ -79,6 +90,7 @@ class RainGame:
         self.screen.blit(text_surface, (start_button_rect.x + (start_button_rect.width - text_surface.get_width()) // 2,
                                         start_button_rect.y + (start_button_rect.height - text_surface.get_height()) // 2))
         return start_button_rect
+    
     def play_background_music(self):
         self.background_music.play()  # 노래를 반복 재생
         
@@ -90,6 +102,9 @@ class RainGame:
         last_alphabet_time = pygame.time.get_ticks()
         clock = pygame.time.Clock()
 
+        game_surface = pygame.Surface((self.SCREEN_WIDTH - 200, self.SCREEN_HEIGHT))
+        score_surface = pygame.Surface((200, self.SCREEN_HEIGHT))
+        
         while not self.game_over:
             self.screen.fill(self.WHITE)
 
@@ -97,6 +112,7 @@ class RainGame:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
                 if event.type == pygame.KEYDOWN:
                     if event.unicode.lower() in 'abcde':
                         target_char = event.unicode.upper()
@@ -124,9 +140,10 @@ class RainGame:
                     self.game_over = True
 
             # 알파벳 업데이트 및 그리기
+            game_surface.fill(self.WHITE)
             for alphabet in alphabets:
                 alphabet.update()
-                alphabet.draw(self.screen, self.game_font, self.BLACK)
+                alphabet.draw(game_surface, self.game_font, self.PRETTY_BLUE)
 
             # 바닥에 닿은 알파벳 제거 및 감점
             for alphabet in alphabets[:]:
@@ -135,28 +152,50 @@ class RainGame:
                     self.score -= 1
 
             # 사라질 수 있는 영역 그리기
-            pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_top), (self.SCREEN_WIDTH, self.remove_zone_top), 2)
-            pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_bottom), (self.SCREEN_WIDTH, self.remove_zone_bottom), 2)
+            pygame.draw.line(game_surface, self.BLACK, (0, self.remove_zone_top), (self.SCREEN_WIDTH-200, self.remove_zone_top), 2)
+            pygame.draw.line(game_surface, self.BLACK, (0, self.remove_zone_bottom), (self.SCREEN_WIDTH-200, self.remove_zone_bottom), 2)
 
             # 고정된 알파벳 그리기
-            fixed_alphabets = 'A       B       C       D       E'
-            text_surface = self.input_font.render(fixed_alphabets, True, self.BLACK)
-            self.screen.blit(text_surface, (self.SCREEN_WIDTH // 2 - text_surface.get_width() // 2, self.SCREEN_HEIGHT - 50))
+            blank = " "*8
+            fixed_alphabets = f"←{blank}↓{blank}↑{blank}→{blank}*"
+            text_surface = self.game_font.render(fixed_alphabets, True, self.BLACK)
+            game_surface.blit(text_surface, ((self.SCREEN_WIDTH-200) // 2 - text_surface.get_width() // 2, self.SCREEN_HEIGHT - 50))
 
             # 점수 표시
-            score_surface = self.input_font.render(f"Score: {self.score}", True, self.BLACK)
-            self.screen.blit(score_surface, (self.SCREEN_WIDTH - 200, self.SCREEN_HEIGHT // 2 - 25))
+            score_surface.fill(self.WHITE)
+            score_text = self.game_font.render(f"Score: {self.score}", True, self.BLACK)
+            score_surface.blit(score_text, (1, 0))
+
+            # Draw surfaces onto main screen
+            self.screen.blit(game_surface, (0, 0))
+            self.screen.blit(score_surface, (self.SCREEN_WIDTH - score_surface.get_width() - 20, 20))
+
+
+            # 카메라 화면 가져오기
+            camera_width = 320
+            camera_height = 240
+            margin_px = 30
+            
+            ret, frame = self.camera.read()
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # BGR에서 RGB로 변환
+                frame = np.rot90(frame)  # 90도 회전
+                frame = pygame.surfarray.make_surface(frame)
+                frame = pygame.transform.scale(frame, (camera_width, camera_height))
+                score_surface.blit(frame, (0, 1))  # score_surface의 (0, 50) 위치에 배치
+                # score_surface.blit(frame, (self.SCREEN_WIDTH - 200 - camera_width - margin_px, self.SCREEN_HEIGHT - 50 -camera_height - margin_px))
 
             # 게임 종료 시 처리
             if self.game_over:
                 self.screen.fill(self.WHITE)  # 화면을 검은색으로 지우기
                 retry_text_surface = self.button_font.render("Retry", True, self.BLACK)
                 self.screen.blit(retry_text_surface, (self.SCREEN_WIDTH // 2 - retry_text_surface.get_width() // 2, 260))
-                final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
+                final_score_surface = self.game_font.render(f"Final Score: {self.score}", True, self.BLACK)
                 self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
                 self.stop_background_music()
+                
             pygame.display.flip()
-            clock.tick(30)
+            clock.tick(30) #
 
 
 if __name__ == "__main__":
