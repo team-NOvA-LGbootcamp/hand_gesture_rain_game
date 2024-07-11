@@ -16,7 +16,7 @@ class HandGestureRecognition:
         self.height = self.input_details[0]['shape'][1]
         self.width = self.input_details[0]['shape'][2]
         self.ansToText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        self.IMG_SIZE = 64
+        self.IMG_SIZE = 28
         self.offset = 30
         self.cap = cv2.VideoCapture(camera_index)
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
@@ -25,38 +25,31 @@ class HandGestureRecognition:
         self.startTime = 0
         self.ans = None
 
-    def make_square_img(self, img):
-        ho, wo = img.shape[0], img.shape[1]
-        aspectRatio = ho / wo
-        wbg = np.ones((self.IMG_SIZE, self.IMG_SIZE, 3), np.uint8) * 255
-        if aspectRatio > 1:  # portrait
-            k = self.IMG_SIZE / ho
-            wk = int(wo * k)
-            img = cv2.resize(img, (wk, self.IMG_SIZE))
-            img_h, img_w = img.shape[0], img.shape[1]
-            d = (self.IMG_SIZE - img_w) // 2
-            wbg[:img_h, d:img_w + d] = img
-        else:  # landscape
-            k = self.IMG_SIZE / wo
-            hk = int(ho * k)
-            img = cv2.resize(img, (self.IMG_SIZE, hk))
-            img_h, img_w = img.shape[0], img.shape[1]
-            d = (self.IMG_SIZE - img_h) // 2
-            wbg[d:img_h + d, :img_w] = img
-        return wbg
-
     def process_image(self, frame):
+
         hands, _ = self.hd.findHands(frame, draw=False)
         if not hands: return
 
         x, y, w, h = hands[0]['bbox']
-        if x < self.offset or y < self.offset or x + w + self.offset > 640 or y + h > 480: return
-        x1, y1 = x - self.offset, y - self.offset
-        x2, y2 = x + w + self.offset, y + h
+        center_x, center_y = x+w//2, y+h//2
+        line = max(w,h) 
+        x1, y1 = center_x-line//2-self.offset,  center_y-line//2-self.offset
+        x2, y2 = center_x+line//2+self.offset, center_y+line//2+self.offset
+        
+        # # 범위 초과 확인
+        if x1<0 or y1<0 or x2>320 or y2>240: return
+
+        # 손만 떼어오기
         img = frame[y1:y2, x1:x2]
-        img = self.make_square_img(img)
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # BGR을 RGB로 변경
+        img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        img = img/255.0
+        img = cv2.resize(img, (28,28))
+
+        img = np.expand_dims(img, -1)
         img = np.expand_dims(img, 0)
+
         self.interpreter.set_tensor(self.input_details[0]['index'], img.astype(self.input_dtype))
         self.interpreter.invoke()
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
@@ -67,8 +60,6 @@ class HandGestureRecognition:
 
     def run(self):
         while self.cap.isOpened():
-            ret, frame = self.cap.read()
-            if not ret: break
             ret, frame = self.cap.read()
             if not ret: break
             curTime = time.time()

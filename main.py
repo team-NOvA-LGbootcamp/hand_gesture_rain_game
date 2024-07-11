@@ -6,6 +6,7 @@ from rain_game import RainGame
 import pygame
 
 def main():
+    print('loading')
     model_path = 'SignMNIST_RainGame.tflite'
     hgr = HandGestureRecognition(model_path)
     
