@@ -3,6 +3,8 @@ import random
 import sys
 import cv2
 from pydub import AudioSegment
+from pygame.locals import *
+from pygame import mixer
 
 class RainGame:
     def __init__(self):
@@ -37,14 +39,20 @@ class RainGame:
             'D': self.SCREEN_WIDTH // 6 * 4 - 20,
             'E': self.SCREEN_WIDTH // 6 * 5 - 20,
         }
-        self.interval = 1500
+        # 알파벳 등장 간격 리스트 및 인덱스
+        self.intervals = [3500+1700]+[1700]*10
+        self.interval_index = 0
         self.speed = 2
+        self.score = 0
 
-        #audio_init
-        audio_file_path = "nabi.wav"
-        pygame.mixer.init()
-        pygame.mixer.music.load(audio_file_path)
-        
+        # 게임 상태 관련 변수
+        self.game_over = False
+
+        # 노래 설정
+        mixer.init()
+        self.background_music = mixer.Sound('nabi.wav')
+
+
     class Alphabet:
         def __init__(self, char, x_position, speed):
             self.char = char
@@ -71,16 +79,18 @@ class RainGame:
         self.screen.blit(text_surface, (start_button_rect.x + (start_button_rect.width - text_surface.get_width()) // 2,
                                         start_button_rect.y + (start_button_rect.height - text_surface.get_height()) // 2))
         return start_button_rect
+    def play_background_music(self):
+        self.background_music.play()  # 노래를 반복 재생
+        
+    def stop_background_music(self):
+        self.background_music.stop()  # 노래를 종료
 
-    def game_loop(self,):
+    def game_loop(self):
         alphabets = []
         last_alphabet_time = pygame.time.get_ticks()
         clock = pygame.time.Clock()
-        running = True
 
-        pygame.mixer.music.play(-1)  # 반복 재생
-
-        while running:
+        while not self.game_over:
             self.screen.fill(self.WHITE)
 
             for event in pygame.event.get():
@@ -97,23 +107,32 @@ class RainGame:
                                 break
                         if target_alphabet:
                             alphabets.remove(target_alphabet)
+                            self.score += 1
 
             # 현재 시간 가져오기
             current_time = pygame.time.get_ticks()
 
             # 일정 시간 간격으로 새 알파벳 생성
-            if current_time - last_alphabet_time > self.interval:
+            if current_time - last_alphabet_time > self.intervals[self.interval_index]:
                 char = random.choice('ABCDE')
                 alphabets.append(self.Alphabet(char, self.alphabet_positions[char], self.speed))
                 last_alphabet_time = current_time
+                self.interval_index = (self.interval_index + 1) % len(self.intervals)
+
+                # interval loop가 끝나면 game_over를 True로 설정
+                if self.interval_index == len(self.intervals) - 1:
+                    self.game_over = True
 
             # 알파벳 업데이트 및 그리기
             for alphabet in alphabets:
                 alphabet.update()
                 alphabet.draw(self.screen, self.game_font, self.BLACK)
 
-            # 바닥에 닿은 알파벳 제거
-            alphabets = [alphabet for alphabet in alphabets if alphabet.y < self.SCREEN_HEIGHT]
+            # 바닥에 닿은 알파벳 제거 및 감점
+            for alphabet in alphabets[:]:
+                if alphabet.y > self.SCREEN_HEIGHT:
+                    alphabets.remove(alphabet)
+                    self.score -= 1
 
             # 사라질 수 있는 영역 그리기
             pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_top), (self.SCREEN_WIDTH, self.remove_zone_top), 2)
@@ -124,27 +143,21 @@ class RainGame:
             text_surface = self.input_font.render(fixed_alphabets, True, self.BLACK)
             self.screen.blit(text_surface, (self.SCREEN_WIDTH // 2 - text_surface.get_width() // 2, self.SCREEN_HEIGHT - 50))
 
+            # 점수 표시
+            score_surface = self.input_font.render(f"Score: {self.score}", True, self.BLACK)
+            self.screen.blit(score_surface, (self.SCREEN_WIDTH - 200, self.SCREEN_HEIGHT // 2 - 25))
+
+            # 게임 종료 시 처리
+            if self.game_over:
+                self.screen.fill(self.WHITE)  # 화면을 검은색으로 지우기
+                retry_text_surface = self.button_font.render("Retry", True, self.BLACK)
+                self.screen.blit(retry_text_surface, (self.SCREEN_WIDTH // 2 - retry_text_surface.get_width() // 2, 260))
+                final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
+                self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
+                self.stop_background_music()
             pygame.display.flip()
             clock.tick(30)
 
-def main():
-    game = RainGame()
-    buttons = game.draw_start_screen()
-    pygame.display.flip()
-    
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_pos = event.pos
-                for level, button_rect in buttons:
-                    if button_rect.collidepoint(mouse_pos):
-                        settings = game.DIFFICULTIES[level]
-                        game.game_loop(settings['interval'], settings['speed'])
-        
-        pygame.display.flip()
 
 if __name__ == "__main__":
     main()
