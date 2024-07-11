@@ -103,6 +103,7 @@ class RainGame:
         clock = pygame.time.Clock()
 
         game_surface = pygame.Surface((self.SCREEN_WIDTH - 200, self.SCREEN_HEIGHT))
+        camera_surface = pygame.Surface((320, 240))
         score_surface = pygame.Surface((200, self.SCREEN_HEIGHT))
         
         while not self.game_over:
@@ -182,7 +183,8 @@ class RainGame:
                 frame = np.rot90(frame)  # 90도 회전
                 frame = pygame.surfarray.make_surface(frame)
                 frame = pygame.transform.scale(frame, (camera_width, camera_height))
-                score_surface.blit(frame, (0, 1))  # score_surface의 (0, 50) 위치에 배치
+                camera_surface.blit(frame, (0, 0))
+                self.screen.blit(camera_surface, (self.SCREEN_WIDTH - 200, 50))
                 # score_surface.blit(frame, (self.SCREEN_WIDTH - 200 - camera_width - margin_px, self.SCREEN_HEIGHT - 50 -camera_height - margin_px))
 
             # 게임 종료 시 처리
