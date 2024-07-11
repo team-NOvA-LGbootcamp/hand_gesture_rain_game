@@ -1,16 +1,19 @@
 import pygame
 import random
 import sys
+import cv2
+from pydub import AudioSegment
 
 class RainGame:
     def __init__(self):
         pygame.init()
 
         # 화면 크기 설정
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        self.SCREEN_WIDTH, self.SCREEN_HEIGHT = pygame.display.get_surface().get_size()
+        self.SCREEN_WIDTH = 800
+        self.SCREEN_HEIGHT = 400
+        self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Alphabet Rain Game")
-
+        self.camera_frame = []
         # 색상 정의
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
@@ -29,6 +32,11 @@ class RainGame:
             'Hard': {'interval': 600, 'speed': 4},
             'Hell': {'interval': 400, 'speed': 5}
         }
+
+        #audio_init
+        audio_file_path = "nabi.wav"
+        pygame.mixer.init()
+        pygame.mixer.music.load(audio_file_path)
 
     class Alphabet:
         def __init__(self, speed, screen_width):
@@ -66,9 +74,11 @@ class RainGame:
         last_alphabet_time = pygame.time.get_ticks()
         clock = pygame.time.Clock()
         running = True
+
+        pygame.mixer.music.play(-1)  # 반복 재생
+
         while running:
             self.screen.fill(self.WHITE)
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
