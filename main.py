@@ -5,46 +5,43 @@ from hand_gesture_recognition import HandGestureRecognition
 from rain_game import RainGame
 import pygame
 
+def run_game(game):
+    while True:
+        if game.get_game_starter():
+            game.game_loop()
+        else:
+            game.game_ready()
+    
+
 def main():
-    print('loading')
     model_path = 'SignMNIST_RainGame.tflite'
     hgr = HandGestureRecognition(model_path)
     
-    #hgr.run()을 별도의 스레드에서 실행
-    run_thread = threading.Thread(target=hgr.run)
-    run_thread.start()
+    # hgr.run()을 별도의 스레드에서 실행
+    hgr_thread = threading.Thread(target=hgr.run)
+    hgr_thread.start()
     
     game = RainGame()
-    start_button_rect = game.draw_start_screen()
     pygame.display.flip()
+    
+    # RainGame을 별도의 스레드에서 실행
+    game_thread = threading.Thread(target=run_game, args=(game,))
+    game_thread.start()
+    
     try:
         while True:
-            
             ans = hgr.get_ans()
             if ans is not None:
-                print(f"Current gesture: {ans}")
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    mouse_pos = event.pos
-                    if start_button_rect.collidepoint(mouse_pos):
-                        game.game_over = False
-                        game.score = 0
-                        game.interval_index = 0
-                        game.play_background_music()
-                        game.game_loop()  # 게임 루프 시작
-
-        
-            pygame.display.flip()
-
+                game.set_cam_input(ans)
+            
+            time.sleep(0.1)  # CPU 사용량을 줄이기 위해 잠시 대기
+            
     except KeyboardInterrupt:
         print("Interrupted by user")
     finally:
         # 스레드가 종료될 때까지 기다림
-        run_thread.join()
+        hgr_thread.join()
+        game_thread.join()
 
 if __name__ == "__main__":
     main()
