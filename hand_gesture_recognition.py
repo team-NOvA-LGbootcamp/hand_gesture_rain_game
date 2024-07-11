@@ -2,50 +2,69 @@ import tflite_runtime.interpreter as tflite
 import numpy as np
 import time
 import cv2
-from cvzone.HandTrackingModule import HandDetector
+from mediapipe import solutions
 
 class HandGestureRecognition:
     def __init__(self, model_path, camera_index=0):
-        self.hd = HandDetector(maxHands=1)
         self.model_path = model_path
         self.interpreter = tflite.Interpreter(model_path=model_path)
         self.interpreter.allocate_tensors()
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
         self.input_dtype = self.input_details[0]['dtype']
-        self.height = self.input_details[0]['shape'][1]
-        self.width = self.input_details[0]['shape'][2]
         self.ansToText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         self.IMG_SIZE = 28
         self.offset = 30
+        self.CAM_WIDTH = 640
+        self.CAM_HEIGHT = 480
         self.cap = cv2.VideoCapture(camera_index)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 320)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 240)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.CAM_WIDTH)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.CAM_HEIGHT)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.startTime = 0
         self.ans = None
 
+        # Mediapipe 손 추적 모듈 초기화
+        self.mp_hands = solutions.hands
+        self.hands = self.mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+
+    def get_hand(self, frame):
+        results = self.hands.process(frame)
+        if results.multi_hand_landmarks:
+            hand_landmarks = results.multi_hand_landmarks[0]
+            h, w, _ = frame.shape
+            x_min, x_max = w, 0
+            y_min, y_max = h, 0
+            for lm in hand_landmarks.landmark:
+                x, y = int(lm.x * w), int(lm.y * h)
+                if x < x_min:
+                    x_min = x
+                if x > x_max:
+                    x_max = x
+                if y < y_min:
+                    y_min = y
+                if y > y_max:
+                    y_max = y
+            return (x_min, y_min, x_max, y_max)
+        return None
+
     def process_image(self, frame):
-
-        hands, _ = self.hd.findHands(frame, draw=False)
-        if not hands: return
-
-        x, y, w, h = hands[0]['bbox']
-        center_x, center_y = x+w//2, y+h//2
-        line = max(w,h) 
-        x1, y1 = center_x-line//2-self.offset,  center_y-line//2-self.offset
-        x2, y2 = center_x+line//2+self.offset, center_y+line//2+self.offset
+        bbox = self.get_hand(frame)
+        if bbox is None:
+            return
         
-        # # 범위 초과 확인
-        if x1<0 or y1<0 or x2>320 or y2>240: return
+        x1, y1, x2, y2 = bbox[0]-self.offset,bbox[1]-self.offset,bbox[2]+self.offset,bbox[3]+self.offset
+        # 범위 초과 확인
+        if x1 < 0 or y1 < 0 or x2 > self.CAM_WIDTH or y2 > self.CAM_HEIGHT:
+            return
 
         # 손만 떼어오기
         img = frame[y1:y2, x1:x2]
 
         # BGR을 RGB로 변경
-        img = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        img = img/255.0
-        img = cv2.resize(img, (28,28))
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = img / 255.0
+        img = cv2.resize(img, (28, 28))
 
         img = np.expand_dims(img, -1)
         img = np.expand_dims(img, 0)
@@ -61,7 +80,8 @@ class HandGestureRecognition:
     def run(self):
         while self.cap.isOpened():
             ret, frame = self.cap.read()
-            if not ret: break
+            if not ret:
+                break
             curTime = time.time()
             fps = 1 / (curTime - self.startTime)
             self.startTime = curTime
@@ -69,7 +89,8 @@ class HandGestureRecognition:
             cv2.putText(frame, f'FPS: {fps:.1f}', (20, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
             cv2.imshow('cam', frame)
             key = cv2.waitKey(10)
-            if key == ord('q'): break
+            if key == ord('q'):
+                break
         self.cap.release()
         cv2.destroyAllWindows()
 
