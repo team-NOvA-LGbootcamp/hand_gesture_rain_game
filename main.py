@@ -6,14 +6,14 @@ from rain_game import RainGame
 import pygame
 
 def main():
-    '''
-    model_path = 'SignMNIST_Augmentation.tflite'
+    print('loading')
+    model_path = 'SignMNIST_RainGame.tflite'
     hgr = HandGestureRecognition(model_path)
     
     hgr.run()을 별도의 스레드에서 실행
     run_thread = threading.Thread(target=hgr.run)
     run_thread.start()
-    '''
+    
     game = RainGame()
     start_button_rect = game.draw_start_screen()
     pygame.display.flip()
