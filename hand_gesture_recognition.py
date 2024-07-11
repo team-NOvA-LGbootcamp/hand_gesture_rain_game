@@ -26,34 +26,31 @@ class HandGestureRecognition:
 
         # Mediapipe 손 추적 모듈 초기화
         self.mp_hands = solutions.hands
-        self.hands = self.mp_hands.Hands(static_image_mode=False, max_num_hands=1, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        self.hands = self.mp_hands.Hands(static_image_mode=False, max_num_hands=1,model_complexity=0, min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
     def get_hand(self, frame):
         results = self.hands.process(frame)
         if results.multi_hand_landmarks:
-            hand_landmarks = results.multi_hand_landmarks[0]
             h, w, _ = frame.shape
-            x_min, x_max = w, 0
-            y_min, y_max = h, 0
-            for lm in hand_landmarks.landmark:
-                x, y = int(lm.x * w), int(lm.y * h)
-                if x < x_min:
-                    x_min = x
-                if x > x_max:
-                    x_max = x
-                if y < y_min:
-                    y_min = y
-                if y > y_max:
-                    y_max = y
-            return (x_min, y_min, x_max, y_max)
+            hand_landmarks = results.multi_hand_landmarks[0].landmark
+            x_coords = [int(lm.x * w) for lm in hand_landmarks]
+            y_coords = [int(lm.y * h) for lm in hand_landmarks]
+            return min(x_coords), min(y_coords), max(x_coords), max(y_coords)
         return None
 
     def process_image(self, frame):
         bbox = self.get_hand(frame)
         if bbox is None:
             return
-        
-        x1, y1, x2, y2 = bbox[0]-self.offset,bbox[1]-self.offset,bbox[2]+self.offset,bbox[3]+self.offset
+        x1, y1, x2, y2 = bbox
+        center_x = (x1+x2)//2
+        center_y = (y1+y2)//2
+        w = x2-x1
+        h = y2-y1
+        line = max(w,h)
+        x1, y1 = center_x-line//2-offset,  center_y-line//2-offset
+        x2, y2 = center_x+line//2+offset, center_y+line//2+offset
+
         # 범위 초과 확인
         if x1 < 0 or y1 < 0 or x2 > self.CAM_WIDTH or y2 > self.CAM_HEIGHT:
             return
