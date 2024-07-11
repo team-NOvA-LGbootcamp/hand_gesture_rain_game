@@ -69,8 +69,6 @@ class HandGestureRecognition:
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret: break
-            ret, frame = self.cap.read()
-            if not ret: break
             curTime = time.time()
             fps = 1 / (curTime - self.startTime)
             self.startTime = curTime
@@ -84,3 +82,6 @@ class HandGestureRecognition:
 
     def get_ans(self):
         return self.ans
+
+    def get_camera_frame(self):
+        return self.camera_frame
