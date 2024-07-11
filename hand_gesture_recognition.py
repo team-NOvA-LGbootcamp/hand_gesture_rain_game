@@ -17,16 +17,34 @@ class HandGestureRecognition:
         self.offset = 30
         self.CAM_WIDTH = 640
         self.CAM_HEIGHT = 480
+        self.CAM_BUFFERSIZE = 1
+        self.FONT_SCALE = 2
+        self.FONT_THICKNESS = 2
+        self.RECTANGLE_COLOR = (255, 0, 0)
+        self.TEXT_COLOR = (255, 0, 0)
+        self.FPS_COLOR = (0, 255, 255)
+        self.FPS_POSITION = (20, 50)
+        self.CAP_PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
+        self.CAP_PROP_FRAME_HEIGHT = cv2.CAP_PROP_FRAME_HEIGHT
+        self.CAP_PROP_BUFFERSIZE = cv2.CAP_PROP_BUFFERSIZE
+        self.FONT = cv2.FONT_HERSHEY_PLAIN
+        self.FPS_ROUND_DECIMALS = 1
         self.cap = cv2.VideoCapture(camera_index)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.CAM_WIDTH)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.CAM_HEIGHT)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.cap.set(self.CAP_PROP_FRAME_WIDTH, self.CAM_WIDTH)
+        self.cap.set(self.CAP_PROP_FRAME_HEIGHT, self.CAM_HEIGHT)
+        self.cap.set(self.CAP_PROP_BUFFERSIZE, self.CAM_BUFFERSIZE)
         self.startTime = 0
         self.ans = None
 
         # Mediapipe 손 추적 모듈 초기화
         self.mp_hands = solutions.hands
-        self.hands = self.mp_hands.Hands(static_image_mode=False, max_num_hands=1,model_complexity=0, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        self.hands = self.mp_hands.Hands(
+            static_image_mode=False, 
+            max_num_hands=1,
+            model_complexity=0, 
+            min_detection_confidence=0.5, 
+            min_tracking_confidence=0.5
+        )
 
     def get_hand(self, frame):
         results = self.hands.process(frame)
@@ -43,13 +61,13 @@ class HandGestureRecognition:
         if bbox is None:
             return
         x1, y1, x2, y2 = bbox
-        center_x = (x1+x2)//2
-        center_y = (y1+y2)//2
-        w = x2-x1
-        h = y2-y1
-        line = max(w,h)
-        x1, y1 = center_x-line//2-offset,  center_y-line//2-offset
-        x2, y2 = center_x+line//2+offset, center_y+line//2+offset
+        center_x = (x1 + x2) // 2
+        center_y = (y1 + y2) // 2
+        w = x2 - x1
+        h = y2 - y1
+        line = max(w, h)
+        x1, y1 = center_x - line // 2 - self.offset, center_y - line // 2 - self.offset
+        x2, y2 = center_x + line // 2 + self.offset, center_y + line // 2 + self.offset
 
         # 범위 초과 확인
         if x1 < 0 or y1 < 0 or x2 > self.CAM_WIDTH or y2 > self.CAM_HEIGHT:
@@ -61,7 +79,7 @@ class HandGestureRecognition:
         # BGR을 RGB로 변경
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         img = img / 255.0
-        img = cv2.resize(img, (28, 28))
+        img = cv2.resize(img, (self.IMG_SIZE, self.IMG_SIZE))
 
         img = np.expand_dims(img, -1)
         img = np.expand_dims(img, 0)
@@ -71,8 +89,8 @@ class HandGestureRecognition:
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
         self.ans = np.argmax(output_data)
         text = self.ansToText[self.ans]
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-        cv2.putText(frame, text, (x1, y1 - 7), cv2.FONT_HERSHEY_PLAIN, 2, (255, 0, 0), 2)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), self.RECTANGLE_COLOR, 2)
+        cv2.putText(frame, text, (x1, y1 - 7), self.FONT, self.FONT_SCALE, self.TEXT_COLOR, self.FONT_THICKNESS)
 
     def run(self):
         while self.cap.isOpened():
@@ -83,7 +101,7 @@ class HandGestureRecognition:
             fps = 1 / (curTime - self.startTime)
             self.startTime = curTime
             self.process_image(frame)
-            cv2.putText(frame, f'FPS: {fps:.1f}', (20, 50), cv2.FONT_HERSHEY_PLAIN, 2, (0, 255, 255), 2)
+            cv2.putText(frame, f'FPS: {fps:.{self.FPS_ROUND_DECIMALS}f}', self.FPS_POSITION, self.FONT, self.FONT_SCALE, self.FPS_COLOR, self.FONT_THICKNESS)
             cv2.imshow('cam', frame)
             key = cv2.waitKey(10)
             if key == ord('q'):
