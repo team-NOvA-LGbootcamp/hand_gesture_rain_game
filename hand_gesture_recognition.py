@@ -34,7 +34,7 @@ class HandGestureRecognition:
         self.cap.set(self.CAP_PROP_FRAME_HEIGHT, self.CAM_HEIGHT)
         self.cap.set(self.CAP_PROP_BUFFERSIZE, self.CAM_BUFFERSIZE)
         self.startTime = 0
-        self.ans = None
+        self.ans = -1
         self.cam_frame = None
 
         # Mediapipe 손 추적 모듈 초기화
@@ -60,6 +60,7 @@ class HandGestureRecognition:
     def process_image(self, frame):
         bbox = self.get_hand(frame)
         if bbox is None:
+            self.ans = -1
             return
         x1, y1, x2, y2 = bbox
         center_x = (x1 + x2) // 2
@@ -103,6 +104,7 @@ class HandGestureRecognition:
             self.startTime = curTime
             self.process_image(frame)
             # cv2.putText(frame, f'FPS: {fps:.{self.FPS_ROUND_DECIMALS}f}', self.FPS_POSITION, self.FONT, self.FONT_SCALE, self.FPS_COLOR, self.FONT_THICKNESS)
+            # cv2.imshow('img',frame)
             self.cam_frame = frame
             key = cv2.waitKey(10)
             if key == ord('q'):

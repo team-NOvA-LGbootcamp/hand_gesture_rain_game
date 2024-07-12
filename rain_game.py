@@ -13,7 +13,7 @@ class RainGame:
 
         # 화면 크기 설정
         self.SCREEN_WIDTH = 1000
-        self.SCREEN_HEIGHT = 600
+        self.SCREEN_HEIGHT = 500
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Alphabet Rain Game")
         self.camera_frame = []
@@ -30,14 +30,14 @@ class RainGame:
         self.PRETTY_BLUE = (100,149,237)
 
         # 폰트 설정
-        self.title_font = pygame.font.Font(None, 90)
-        self.button_font = pygame.font.Font(None, 70)
-        self.game_font = pygame.font.Font(None, 60)
+        self.title_font = pygame.font.Font(None, 100)
+        self.button_font = pygame.font.Font(None, 74)
+        self.game_font = pygame.font.Font(None, 74)
+        self.input_font = pygame.font.Font(None, 48)
 
         # 알파벳 영역 설정 (화면 세로방향 약 3/4 지점)
-        self.remove_zone_top = self.SCREEN_HEIGHT * 3 // 4 - 25
-        self.remove_zone_bottom = self.SCREEN_HEIGHT * 3 // 4 + 25
-
+        self.remove_zone_top = self.SCREEN_HEIGHT * 3 // 4 - 100
+        self.remove_zone_bottom = self.SCREEN_HEIGHT * 3 // 4 + 0
         # 알파벳 이미지 로드
         self.images = {
             'A': pygame.image.load('./icons/icon_A.png'),
@@ -51,7 +51,7 @@ class RainGame:
         fixed=10
         self.alphabet_positions = {
             'A': 20,
-            'B': self.SCREEN_WIDTH // game_margin * 1 - 20,
+            'B': self.SCREEN_WIDTH // game_margin * 1 - fixed,
             'F': self.SCREEN_WIDTH // game_margin * 2 - fixed,
             'V': self.SCREEN_WIDTH // game_margin * 3 - fixed,
             'Y': self.SCREEN_WIDTH // game_margin * 4 - fixed,
@@ -59,9 +59,9 @@ class RainGame:
 
         # 알파벳 등장 간격 리스트 및 인덱스
         # self.intervals = [3500+1700]+[1700]*10 # ms
-        self.intervals = [100]+[1700]*1000 # ms
+        self.intervals = [1000]+[1700]*50 # ms
         self.interval_index = 0
-        self.speed = 2
+        self.speed = 1
         self.score = 0
 
         # 게임 상태 관련 변수
@@ -73,7 +73,7 @@ class RainGame:
         self.background_music = mixer.Sound('nabi.wav')
         
         # Cam전달 변수
-        self.cam_input = 0
+        self.cam_input = -1
         self.start_button_rect = self.draw_start_screen()
 
         #frame
@@ -139,23 +139,31 @@ class RainGame:
         alphabets = []
         last_alphabet_time = pygame.time.get_ticks()
         clock = pygame.time.Clock()
-        pygame.display.flip()
-                        
+        pygame.display.flip()  
+
         while True:
             if not self.game_over:
                 self.screen.fill(self.WHITE)
+                pygame.draw.rect(self.screen, (150, 220, 150), (0, (self.remove_zone_top+self.remove_zone_bottom)/2, self.SCREEN_WIDTH - 240, 100))
+                
+                if self.cam_input != -1:
+                    chars = 'ABFVY'
+                    target_char = chars[self.cam_input]
+                    image = self.images[target_char]
+                    x_t = self.alphabet_positions[target_char]-10
+                    y_t = 0
+                    pygame.draw.rect(self.screen, (220, 150, 150), (x_t,y_t,65,500))
+                
 
-                chars = 'ABFVY'
-                target_char = chars[self.cam_input]
-                image = self.images[target_char]
-                target_alphabet = None
-                for alphabet in alphabets:
-                    if alphabet.char == target_char and self.remove_zone_top < alphabet.y < self.remove_zone_bottom:
-                        target_alphabet = alphabet
-                        break
-                if target_alphabet:
-                    alphabets.remove(target_alphabet)
-                    self.score += 1
+                    target_alphabet = None
+
+                    for alphabet in alphabets:
+                        if alphabet.char == target_char and self.remove_zone_top < alphabet.y < self.remove_zone_bottom:
+                            target_alphabet = alphabet
+                            break
+                    if target_alphabet:
+                        alphabets.remove(target_alphabet)
+                        self.score += 1
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -186,16 +194,14 @@ class RainGame:
                 for alphabet in alphabets[:]:
                     if alphabet.y > self.SCREEN_HEIGHT-10:
                         alphabets.remove(alphabet)
-                        self.score -= 1
+                        if self.score > 0:
+                            self.score -= 1
 
-                # 사라질 수 있는 영역 그리기
-                pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_top), (self.SCREEN_WIDTH, self.remove_zone_top), 2)
-                pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_bottom), (self.SCREEN_WIDTH, self.remove_zone_bottom), 2)
 
                 # 고정된 알파벳 그리기
                 fixed=10
                 self.screen.blit(self.images['A'], (20, self.SCREEN_HEIGHT - 60))
-                self.screen.blit(self.images['B'], (self.SCREEN_WIDTH // game_margin * 1, self.SCREEN_HEIGHT - 60))
+                self.screen.blit(self.images['B'], (self.SCREEN_WIDTH // game_margin * 1- fixed, self.SCREEN_HEIGHT - 60))
                 self.screen.blit(self.images['F'], (self.SCREEN_WIDTH // game_margin * 2 - fixed, self.SCREEN_HEIGHT - 60))
                 self.screen.blit(self.images['V'], (self.SCREEN_WIDTH // game_margin * 3 - fixed, self.SCREEN_HEIGHT - 60))
                 self.screen.blit(self.images['Y'], (self.SCREEN_WIDTH // game_margin * 4 - fixed, self.SCREEN_HEIGHT - 60))

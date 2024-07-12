@@ -40,10 +40,8 @@ def main():
         while True:
             if MODEL:
                 ans = hgr.get_ans()
-                frame = hgr.get_frame()
-                game.set_cam_frame(frame)
-                if ans is not None:
-                    game.set_cam_input(ans)
+                game.set_cam_input(ans)
+                game.set_cam_frame(hgr.get_frame())
                 time.sleep(0.1)  # CPU 사용량을 줄이기 위해 잠시 대기
             
     except KeyboardInterrupt:
