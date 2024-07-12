@@ -56,7 +56,7 @@ class RainGame:
         # 알파벳 등장 간격 리스트 및 인덱스
         # self.intervals = [3500+1700]+[1700]*10 # ms
         # self.intervals = [1000]+[1200]*50 # ms
-        self.intervals = [1000]+[2400]*50 # ms
+        self.intervals = [1000]+[2400]*34 # ms
         self.interval_index = 0
         self.speed = 2
         self.score = 0
@@ -151,13 +151,13 @@ class RainGame:
                     y_t = (self.remove_zone_top+self.remove_zone_bottom)/2
                     pygame.draw.rect(self.screen, self.USER_YELLOW, (x_t, y_t, 65, 100))
                 
-
                     target_alphabet = None
 
                     for alphabet in alphabets:
                         if alphabet.char == target_char and self.remove_zone_top < alphabet.y < self.remove_zone_bottom:
                             target_alphabet = alphabet
                             break
+                            
                     if target_alphabet:
                         alphabets.remove(target_alphabet)
                         self.score += 1
