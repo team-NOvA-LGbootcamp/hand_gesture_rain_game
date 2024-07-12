@@ -2,10 +2,11 @@ import pygame
 import random
 import sys
 import cv2
-from pydub import AudioSegment
 from pygame.locals import *
 from pygame import mixer
 
+
+game_margin = 8
 class RainGame:
     def __init__(self):
         pygame.init()
@@ -16,31 +17,49 @@ class RainGame:
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Alphabet Rain Game")
         self.camera_frame = []
+        
         # 색상 정의
         self.WHITE = (255, 255, 255)
         self.BLACK = (0, 0, 0)
         self.GRAY = (200, 200, 200)
 
+        # 색상 정의
+        self.WHITE = (255, 255, 255)
+        self.BLACK = (0, 0, 0)
+        self.GRAY = (200, 200, 200)
+        self.PRETTY_BLUE = (100,149,237)
+
         # 폰트 설정
-        self.title_font = pygame.font.Font(None, 100)
-        self.button_font = pygame.font.Font(None, 74)
-        self.game_font = pygame.font.Font(None, 74)
-        self.input_font = pygame.font.Font(None, 48)
+        self.title_font = pygame.font.Font(None, 90)
+        self.button_font = pygame.font.Font(None, 70)
+        self.game_font = pygame.font.Font(None, 60)
 
         # 알파벳 영역 설정 (화면 세로방향 약 3/4 지점)
         self.remove_zone_top = self.SCREEN_HEIGHT * 3 // 4 - 25
         self.remove_zone_bottom = self.SCREEN_HEIGHT * 3 // 4 + 25
 
-        # 알파벳 고정 위치 설정
-        self.alphabet_positions = {
-            'A': self.SCREEN_WIDTH // 6 * 1 - 20,
-            'B': self.SCREEN_WIDTH // 6 * 2 - 20,
-            'C': self.SCREEN_WIDTH // 6 * 3 - 20,
-            'D': self.SCREEN_WIDTH // 6 * 4 - 20,
-            'E': self.SCREEN_WIDTH // 6 * 5 - 20,
+        # 알파벳 이미지 로드
+        self.images = {
+            'A': pygame.image.load('./icons/icon_A.png'),
+            'B': pygame.image.load('./icons/icon_B.png'),
+            'F': pygame.image.load('./icons/icon_F.png'),
+            'V': pygame.image.load('./icons/icon_V.png'),
+            'Y': pygame.image.load('./icons/icon_Y.png')
         }
+
+        # 알파벳 고정 위치 설정
+        fixed=10
+        self.alphabet_positions = {
+            'A': 20,
+            'B': self.SCREEN_WIDTH // game_margin * 1 - 20,
+            'F': self.SCREEN_WIDTH // game_margin * 2 - fixed,
+            'V': self.SCREEN_WIDTH // game_margin * 3 - fixed,
+            'Y': self.SCREEN_WIDTH // game_margin * 4 - fixed,
+        }
+
         # 알파벳 등장 간격 리스트 및 인덱스
-        self.intervals = [3500+1700]+[1700]*2
+        # self.intervals = [3500+1700]+[1700]*10 # ms
+        self.intervals = [100]+[1700]*1000 # ms
         self.interval_index = 0
         self.speed = 2
         self.score = 0
@@ -61,15 +80,15 @@ class RainGame:
         self.frame = None
 
     class Alphabet:
-        def __init__(self, char, x_position, speed):
+        def __init__(self, char, x_position, speed, image):
             self.char = char
             self.x = x_position
             self.y = 0
             self.speed = speed
+            self.image = image
         
-        def draw(self, screen, game_font, color):
-            text = game_font.render(self.char, True, color)
-            screen.blit(text, (self.x, self.y))
+        def draw(self, screen, game_font=None):
+            screen.blit(self.image, (self.x, self.y))
         
         def update(self):
             self.y += self.speed
@@ -122,15 +141,13 @@ class RainGame:
         clock = pygame.time.Clock()
         pygame.display.flip()
                         
-        
         while True:
-
-
             if not self.game_over:
                 self.screen.fill(self.WHITE)
 
-                chars = 'ABCDE'
+                chars = 'ABFVY'
                 target_char = chars[self.cam_input]
+                image = self.images[target_char]
                 target_alphabet = None
                 for alphabet in alphabets:
                     if alphabet.char == target_char and self.remove_zone_top < alphabet.y < self.remove_zone_bottom:
@@ -150,8 +167,9 @@ class RainGame:
 
                 # 일정 시간 간격으로 새 알파벳 생성
                 if current_time - last_alphabet_time > self.intervals[self.interval_index]:
-                    char = random.choice('ABCDE')
-                    alphabets.append(self.Alphabet(char, self.alphabet_positions[char], self.speed))
+                    char = random.choice('ABFVY')
+                    image = self.images[char]
+                    alphabets.append(self.Alphabet(char, self.alphabet_positions[char], self.speed, image))
                     last_alphabet_time = current_time
                     self.interval_index = (self.interval_index + 1) % len(self.intervals)
 
@@ -162,7 +180,7 @@ class RainGame:
                 # 알파벳 업데이트 및 그리기
                 for alphabet in alphabets:
                     alphabet.update()
-                    alphabet.draw(self.screen, self.game_font, self.BLACK)
+                    alphabet.draw(self.screen, self.game_font)
 
                 # 바닥에 닿은 알파벳 제거 및 감점
                 for alphabet in alphabets[:]:
@@ -175,33 +193,34 @@ class RainGame:
                 pygame.draw.line(self.screen, self.BLACK, (0, self.remove_zone_bottom), (self.SCREEN_WIDTH, self.remove_zone_bottom), 2)
 
                 # 고정된 알파벳 그리기
-                fixed_alphabets = 'A       B       C       D       E'
-                text_surface = self.input_font.render(fixed_alphabets, True, self.BLACK)
-                self.screen.blit(text_surface, (self.SCREEN_WIDTH // 2 - text_surface.get_width() // 2, self.SCREEN_HEIGHT - 50))
+                fixed=10
+                self.screen.blit(self.images['A'], (20, self.SCREEN_HEIGHT - 60))
+                self.screen.blit(self.images['B'], (self.SCREEN_WIDTH // game_margin * 1, self.SCREEN_HEIGHT - 60))
+                self.screen.blit(self.images['F'], (self.SCREEN_WIDTH // game_margin * 2 - fixed, self.SCREEN_HEIGHT - 60))
+                self.screen.blit(self.images['V'], (self.SCREEN_WIDTH // game_margin * 3 - fixed, self.SCREEN_HEIGHT - 60))
+                self.screen.blit(self.images['Y'], (self.SCREEN_WIDTH // game_margin * 4 - fixed, self.SCREEN_HEIGHT - 60))
+                # self.screen.blit(text_surface, 
+                #                  (self.SCREEN_WIDTH // 2 - text_surface.get_width() // 2, self.SCREEN_HEIGHT - 50))
 
                 # 점수 표시
-                score_surface = self.input_font.render(f"Score: {self.score}", True, self.BLACK)
+                score_surface = self.game_font.render(f"Score: {self.score}", True, self.BLACK)
                 self.screen.blit(score_surface, (self.SCREEN_WIDTH - 200, self.SCREEN_HEIGHT // 2 - 25))
-                
-                # input interaction
-                cam_status = self.input_font.render(f"cam: {self.cam_input}", True, self.BLACK)
-                self.screen.blit(cam_status, (self.SCREEN_WIDTH - 300, self.SCREEN_HEIGHT // 2 - 50))
                 
                 # 게임 종료 시 처리
                 if self.game_over:
                     self.screen.fill(self.WHITE)  # 화면을 검은색으로 지우기
                     retry_text_surface = self.button_font.render("Retry", True, self.BLACK)
                     self.screen.blit(retry_text_surface, (self.SCREEN_WIDTH // 2 - retry_text_surface.get_width() // 2, 260))
-                    final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
+                    final_score_surface = self.game_font.render(f"Final Score: {self.score}", True, self.BLACK)
                     self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
                     self.stop_background_music()
 
                 if self.frame is not None:
                     frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
                     frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
-                    frame = cv2.resize(frame, (120, 160))  # 웹캠 프레임 크기 조정
+                    frame = cv2.resize(frame, (180, 240))  # 웹캠 프레임 크기 조정
                     frame_surface = pygame.surfarray.make_surface(frame)
-                    self.screen.blit(frame_surface, (self.SCREEN_WIDTH - 160, 0))  # 오른쪽 위에 웹캠 프레임 그리기
+                    self.screen.blit(frame_surface, (self.SCREEN_WIDTH - 240, 30))  # 오른쪽 위에 웹캠 프레임 그리기
                 
                 pygame.display.flip()
                 clock.tick(30)
@@ -213,7 +232,7 @@ class RainGame:
                 pygame.draw.rect(self.screen, self.GRAY, self.retry_button_rect)
                 self.screen.blit(retry_text_surface, (self.retry_button_rect.x + (self.retry_button_rect.width - retry_text_surface.get_width()) // 2,
                                                      self.retry_button_rect.y + (self.retry_button_rect.height - retry_text_surface.get_height()) // 2))
-                final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
+                final_score_surface = self.game_font.render(f"Final Score: {self.score}", True, self.BLACK)
                 self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
                 self.stop_background_music()
                 pygame.display.flip()
