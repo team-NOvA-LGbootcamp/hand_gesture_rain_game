@@ -19,6 +19,6 @@ hand_gesture_rain_game 폴더 안에 main.py를 실행합니다.
 Training 폴더 안에 collab에서 사용한 학습 코드가 있습니다.
 
 ## 게임 시연 화면
-<img src="게임 시연 화면 (1).jpg" />
-<img src="게임 시연 화면 (2).jpg" />
+<img src="./README_files/game_playing1.jpg" />
+<img src="./README_files/game_playing2.jpg" />
  
