@@ -55,9 +55,10 @@ class RainGame:
 
         # 알파벳 등장 간격 리스트 및 인덱스
         # self.intervals = [3500+1700]+[1700]*10 # ms
-        self.intervals = [1000]+[1700]*50 # ms
+        # self.intervals = [1000]+[1200]*50 # ms
+        self.intervals = [1000]+[2400]*50 # ms
         self.interval_index = 0
-        self.speed = 1
+        self.speed = 2
         self.score = 0
 
         # 게임 상태 관련 변수
