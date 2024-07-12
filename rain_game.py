@@ -40,7 +40,7 @@ class RainGame:
             'E': self.SCREEN_WIDTH // 6 * 5 - 20,
         }
         # 알파벳 등장 간격 리스트 및 인덱스
-        self.intervals = [3500+1700]+[1700]*10
+        self.intervals = [3500+1700]+[1700]*2
         self.interval_index = 0
         self.speed = 2
         self.score = 0
@@ -56,6 +56,9 @@ class RainGame:
         # Cam전달 변수
         self.cam_input = 0
         self.start_button_rect = self.draw_start_screen()
+
+        #frame
+        self.frame = None
 
     class Alphabet:
         def __init__(self, char, x_position, speed):
@@ -73,6 +76,10 @@ class RainGame:
 
     def set_cam_input(self, ans):
         self.cam_input = ans
+
+    def set_cam_frame(self, frame):
+        self.frame = frame
+
     
     def get_game_starter(self):
         return self.game_starter
@@ -117,7 +124,9 @@ class RainGame:
                         
         
         while True:
-            if not self.game_over
+
+
+            if not self.game_over:
                 self.screen.fill(self.WHITE)
 
                 chars = 'ABCDE'
@@ -131,12 +140,10 @@ class RainGame:
                     alphabets.remove(target_alphabet)
                     self.score += 1
 
-
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
                         pygame.quit()
                         sys.exit()
-
 
                 # 현재 시간 가져오기
                 current_time = pygame.time.get_ticks()
@@ -159,7 +166,7 @@ class RainGame:
 
                 # 바닥에 닿은 알파벳 제거 및 감점
                 for alphabet in alphabets[:]:
-                    if alphabet.y > self.SCREEN_HEIGHT:
+                    if alphabet.y > self.SCREEN_HEIGHT-10:
                         alphabets.remove(alphabet)
                         self.score -= 1
 
@@ -188,10 +195,36 @@ class RainGame:
                     final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
                     self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
                     self.stop_background_music()
+
                 pygame.display.flip()
                 clock.tick(30)
+
             else:
-                ()
+                self.screen.fill(self.WHITE)  # 화면을 흰색으로 지우기
+                retry_text_surface = self.button_font.render("Retry", True, self.BLACK)
+                self.retry_button_rect = pygame.Rect(self.SCREEN_WIDTH // 2 - 100, 260, 200, 50)
+                pygame.draw.rect(self.screen, self.GRAY, self.retry_button_rect)
+                self.screen.blit(retry_text_surface, (self.retry_button_rect.x + (self.retry_button_rect.width - retry_text_surface.get_width()) // 2,
+                                                     self.retry_button_rect.y + (self.retry_button_rect.height - retry_text_surface.get_height()) // 2))
+                final_score_surface = self.input_font.render(f"Final Score: {self.score}", True, self.BLACK)
+                self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
+                self.stop_background_music()
+                pygame.display.flip()
+
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        pygame.quit()
+                        sys.exit()
+                    if event.type == pygame.MOUSEBUTTONDOWN:
+                        mouse_pos = event.pos
+                        if self.retry_button_rect and self.retry_button_rect.collidepoint(mouse_pos):
+                            self.game_over = False
+                            self.game_starter = False
+                            alphabets = []
+                            self.score = 0
+                            self.interval_index = 0
+                            self.play_background_music()  # 배경 음악 재생
+                            last_alphabet_time = pygame.time.get_ticks()
 
 
 if __name__ == "__main__":
