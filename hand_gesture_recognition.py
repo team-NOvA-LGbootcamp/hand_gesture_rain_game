@@ -20,8 +20,8 @@ class HandGestureRecognition:
         self.CAM_BUFFERSIZE = 1
         self.FONT_SCALE = 2
         self.FONT_THICKNESS = 2
-        self.RECTANGLE_COLOR = (255, 0, 0)
-        self.TEXT_COLOR = (255, 0, 0)
+        self.RECTANGLE_COLOR = [(0, 0, 255),(255,0,0)]
+        self.TEXT_COLOR = [(0, 0, 255),(255,0,0)]
         self.FPS_COLOR = (0, 255, 255)
         self.FPS_POSITION = (20, 50)
         self.CAP_PROP_FRAME_WIDTH = cv2.CAP_PROP_FRAME_WIDTH
@@ -36,6 +36,8 @@ class HandGestureRecognition:
         self.startTime = 0
         self.ans = -1
         self.cam_frame = None
+        self.prob= 0 
+        self.threshold = 0.7
 
         # Mediapipe 손 추적 모듈 초기화
         self.mp_hands = solutions.hands
@@ -89,10 +91,12 @@ class HandGestureRecognition:
         self.interpreter.set_tensor(self.input_details[0]['index'], img.astype(self.input_dtype))
         self.interpreter.invoke()
         output_data = self.interpreter.get_tensor(self.output_details[0]['index'])[0]
+        self.prob = np.max(output_data)
         self.ans = np.argmax(output_data)
-        text = self.ansToText[self.ans]
-        cv2.rectangle(frame, (x1, y1), (x2, y2), self.RECTANGLE_COLOR, 2)
-        cv2.putText(frame, text, (x1, y1 - 7), self.FONT, self.FONT_SCALE, self.TEXT_COLOR, self.FONT_THICKNESS)
+        text = f'{self.ansToText[self.ans]}:{self.prob*100:.1f}%' if self.prob >= self.threshold else f'{self.prob*100:.1f}%'
+        cv2.rectangle(frame, (x1, y1), (x2, y2), self.RECTANGLE_COLOR[0] if self.prob >= self.threshold else self.RECTANGLE_COLOR[1], 2)
+        cv2.putText(frame, text, (x1, y1 - 7), self.FONT, self.FONT_SCALE, self.TEXT_COLOR[0] if self.prob >= self.threshold else self.TEXT_COLOR[1], self.FONT_THICKNESS)
+
 
     def run(self, stop_event):
         while self.cap.isOpened():
@@ -113,7 +117,10 @@ class HandGestureRecognition:
         cv2.destroyAllWindows()
 
     def get_ans(self):
-        return self.ans
+        if self.prob >= self.threshold:
+            return self.ans
+        else:
+            return -1
 
     def get_frame(self):
         return self.cam_frame
