@@ -1,9 +1,16 @@
 import threading
 import time
 import sys
-from hand_gesture_recognition import HandGestureRecognition
+
 from rain_game import RainGame
 import pygame
+
+MODEL = True
+
+if MODEL:
+    print("Loading model")
+    from hand_gesture_recognition import HandGestureRecognition
+    print("Model is Ready")
 
 def run_game(game):
     while True:
@@ -14,13 +21,14 @@ def run_game(game):
     
 
 def main():
-    model_path = 'SignMNIST_RainGame.tflite'
-    hgr = HandGestureRecognition(model_path)
-    
-    # hgr.run()을 별도의 스레드에서 실행
-    hgr_thread = threading.Thread(target=hgr.run)
-    hgr_thread.start()
-    
+    if MODEL:
+        model_path = 'SignMNIST_RainGame.tflite'
+        hgr = HandGestureRecognition(model_path)
+        
+        # hgr.run()을 별도의 스레드에서 실행
+        hgr_thread = threading.Thread(target=hgr.run)
+        hgr_thread.start()
+        
     game = RainGame()
     pygame.display.flip()
     
@@ -30,11 +38,13 @@ def main():
     
     try:
         while True:
-            ans = hgr.get_ans()
-            if ans is not None:
-                game.set_cam_input(ans)
-            
-            time.sleep(0.1)  # CPU 사용량을 줄이기 위해 잠시 대기
+            if MODEL:
+                ans = hgr.get_ans()
+                frame = hgr.get_frame()
+                game.set_cam_frame(frame)
+                if ans is not None:
+                    game.set_cam_input(ans)
+                time.sleep(0.1)  # CPU 사용량을 줄이기 위해 잠시 대기
             
     except KeyboardInterrupt:
         print("Interrupted by user")

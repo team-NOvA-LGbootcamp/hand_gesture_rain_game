@@ -11,8 +11,8 @@ class RainGame:
         pygame.init()
 
         # 화면 크기 설정
-        self.SCREEN_WIDTH = 800
-        self.SCREEN_HEIGHT = 400
+        self.SCREEN_WIDTH = 1000
+        self.SCREEN_HEIGHT = 600
         self.screen = pygame.display.set_mode((self.SCREEN_WIDTH, self.SCREEN_HEIGHT))
         pygame.display.set_caption("Alphabet Rain Game")
         self.camera_frame = []
@@ -196,6 +196,13 @@ class RainGame:
                     self.screen.blit(final_score_surface, (self.SCREEN_WIDTH // 2 - final_score_surface.get_width() // 2, 150))
                     self.stop_background_music()
 
+                if self.frame is not None:
+                    frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+                    frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                    frame = cv2.resize(frame, (120, 160))  # 웹캠 프레임 크기 조정
+                    frame_surface = pygame.surfarray.make_surface(frame)
+                    self.screen.blit(frame_surface, (self.SCREEN_WIDTH - 160, 0))  # 오른쪽 위에 웹캠 프레임 그리기
+                
                 pygame.display.flip()
                 clock.tick(30)
 

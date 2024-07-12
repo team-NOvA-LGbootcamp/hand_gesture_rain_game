@@ -15,8 +15,8 @@ class HandGestureRecognition:
         self.ansToText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         self.IMG_SIZE = 28
         self.offset = 30
-        self.CAM_WIDTH = 640
-        self.CAM_HEIGHT = 480
+        self.CAM_WIDTH = 320
+        self.CAM_HEIGHT = 240
         self.CAM_BUFFERSIZE = 1
         self.FONT_SCALE = 2
         self.FONT_THICKNESS = 2
@@ -35,6 +35,7 @@ class HandGestureRecognition:
         self.cap.set(self.CAP_PROP_BUFFERSIZE, self.CAM_BUFFERSIZE)
         self.startTime = 0
         self.ans = None
+        self.cam_frame = None
 
         # Mediapipe 손 추적 모듈 초기화
         self.mp_hands = solutions.hands
@@ -101,8 +102,8 @@ class HandGestureRecognition:
             fps = 1 / (curTime - self.startTime)
             self.startTime = curTime
             self.process_image(frame)
-            cv2.putText(frame, f'FPS: {fps:.{self.FPS_ROUND_DECIMALS}f}', self.FPS_POSITION, self.FONT, self.FONT_SCALE, self.FPS_COLOR, self.FONT_THICKNESS)
-            cv2.imshow('cam', frame)
+            # cv2.putText(frame, f'FPS: {fps:.{self.FPS_ROUND_DECIMALS}f}', self.FPS_POSITION, self.FONT, self.FONT_SCALE, self.FPS_COLOR, self.FONT_THICKNESS)
+            self.cam_frame = frame
             key = cv2.waitKey(10)
             if key == ord('q'):
                 break
@@ -111,3 +112,6 @@ class HandGestureRecognition:
 
     def get_ans(self):
         return self.ans
+
+    def get_frame(self):
+        return self.cam_frame
