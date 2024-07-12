@@ -12,9 +12,9 @@ class HandGestureRecognition:
         self.input_details = self.interpreter.get_input_details()
         self.output_details = self.interpreter.get_output_details()
         self.input_dtype = self.input_details[0]['dtype']
-        self.ansToText = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        self.ansToText = 'ABFVY'
         self.IMG_SIZE = 28
-        self.offset = 30
+        self.offset = 15
         self.CAM_WIDTH = 320
         self.CAM_HEIGHT = 240
         self.CAM_BUFFERSIZE = 1
@@ -94,7 +94,7 @@ class HandGestureRecognition:
         cv2.rectangle(frame, (x1, y1), (x2, y2), self.RECTANGLE_COLOR, 2)
         cv2.putText(frame, text, (x1, y1 - 7), self.FONT, self.FONT_SCALE, self.TEXT_COLOR, self.FONT_THICKNESS)
 
-    def run(self):
+    def run(self, stop_event):
         while self.cap.isOpened():
             ret, frame = self.cap.read()
             if not ret:
@@ -107,7 +107,7 @@ class HandGestureRecognition:
             # cv2.imshow('img',frame)
             self.cam_frame = frame
             key = cv2.waitKey(10)
-            if key == ord('q'):
+            if key == ord('q') or stop_event.is_set():
                 break
         self.cap.release()
         cv2.destroyAllWindows()

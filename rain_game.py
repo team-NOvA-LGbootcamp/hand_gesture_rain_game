@@ -135,13 +135,13 @@ class RainGame:
                     self.play_background_music()
                     self.game_starter = True
 
-    def game_loop(self):
+    def game_loop(self, stop_event):
         alphabets = []
         last_alphabet_time = pygame.time.get_ticks()
         clock = pygame.time.Clock()
         pygame.display.flip()  
 
-        while True:
+        while not stop_event.is_set():
             if not self.game_over:
                 self.screen.fill(self.WHITE)
                 pygame.draw.rect(self.screen, (150, 220, 150), (0, (self.remove_zone_top+self.remove_zone_bottom)/2, self.SCREEN_WIDTH - 240, 100))
