@@ -6,6 +6,7 @@ from rain_game import RainGame
 import pygame
 
 MODEL = True
+stop_event = threading.Event()
 
 if MODEL:
     print("Loading model")
@@ -13,9 +14,9 @@ if MODEL:
     print("Model is Ready")
 
 def run_game(game):
-    while True:
+    while not stop_event.is_set():
         if game.get_game_starter():
-            game.game_loop()
+            game.game_loop(stop_event)
         else:
             game.game_ready()
     
@@ -26,18 +27,18 @@ def main():
         hgr = HandGestureRecognition(model_path)
         
         # hgr.run()을 별도의 스레드에서 실행
-        hgr_thread = threading.Thread(target=hgr.run)
+        hgr_thread = threading.Thread(target=hgr.run, args=(stop_event,), daemon=True)
         hgr_thread.start()
-        
+    
     game = RainGame()
     pygame.display.flip()
     
     # RainGame을 별도의 스레드에서 실행
-    game_thread = threading.Thread(target=run_game, args=(game,))
+    game_thread = threading.Thread(target=run_game, args=(game,), daemon=True)
     game_thread.start()
     
     try:
-        while True:
+        while not stop_event.is_set():
             if MODEL:
                 ans = hgr.get_ans()
                 game.set_cam_input(ans)
@@ -46,6 +47,7 @@ def main():
             
     except KeyboardInterrupt:
         print("Interrupted by user")
+        stop_event.set()
     finally:
         # 스레드가 종료될 때까지 기다림
         hgr_thread.join()
